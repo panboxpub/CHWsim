@@ -35,7 +35,7 @@
 <script>
 
 // =====================
-// STATE
+// GLOBAL STATE
 // =====================
 let recognition = null;
 let listening = false;
@@ -55,7 +55,7 @@ const scenarios = {
     name: "Ashley",
     fhir: {
       Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" },
-      Observation: { sleep:"48 hours none", behavior:"agitated, distracted" }
+      Observation: { sleep:"48 hours none", behavior:"agitated" }
     }
   },
   maria: {
@@ -113,6 +113,11 @@ function startListening() {
       listening = false;
       document.getElementById("status").innerText = "Idle";
     };
+
+    recognition.onerror = (e) => {
+      console.error("Mic error:", e);
+      document.getElementById("status").innerText = "Mic error";
+    };
   }
 
   if (!listening) {
@@ -123,35 +128,49 @@ function startListening() {
 }
 
 // =====================
-// AI CALL (SECURE BACKEND)
+// AI CALL (BACKEND)
 // =====================
 async function processConversation(userInput) {
 
   updateEmotion(userInput);
 
-  const response = await fetch("https://YOUR-BACKEND.onrender.com/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      messages: [
-        { role:"system", content: buildPrompt() },
-        ...conversationHistory,
-        { role:"user", content:userInput }
-      ]
-    })
-  });
+  try {
 
-  const data = await response.json();
+    const response = await fetch("https://chw-backend.onrender.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: [
+          { role:"system", content: buildPrompt() },
+          ...conversationHistory,
+          { role:"user", content:userInput }
+        ]
+      })
+    });
 
-  const aiText = data.choices[0].message.content;
+    const data = await response.json();
+    console.log("BACKEND RESPONSE:", data);
 
-  conversationHistory.push({role:"user", content:userInput});
-  conversationHistory.push({role:"assistant", content:aiText});
+    if (!data.choices) {
+      console.error("Invalid response:", data);
+      document.getElementById("status").innerText = "Backend error";
+      return;
+    }
 
-  logMessage(currentPatient.name, aiText);
-  speak(aiText);
+    const aiText = data.choices[0].message.content;
+
+    conversationHistory.push({role:"user", content:userInput});
+    conversationHistory.push({role:"assistant", content:aiText});
+
+    logMessage(currentPatient.name, aiText);
+    speak(aiText);
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+    document.getElementById("status").innerText = "Connection error";
+  }
 
   document.getElementById("status").innerText = "Idle";
 }
@@ -172,8 +191,8 @@ Defensiveness ${emotionalState.defensiveness}
 Openness ${emotionalState.openness}
 
 RULES:
-- Answer the question directly first
-- Then add emotion naturally
+- Answer directly first
+- Then add emotion
 - Avoid vague responses
 - Build trust gradually
 
@@ -221,7 +240,7 @@ function updateScores(){
 }
 
 // =====================
-// FEMALE VOICE
+// VOICE (FEMALE)
 // =====================
 function speak(text){
 
