@@ -1,38 +1,149 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CHW Simulation System</title>
+  <title>CHW Training Simulation Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial; }
-    #log { border:1px solid #000; padding:10px; height:220px; overflow:auto; }
-    #scores { border:1px solid #444; padding:8px; margin-top:8px; }
-    #patient { border:1px solid #888; padding:8px; margin-top:8px; }
+    body { font-family: Arial, sans-serif; margin: 20px; background:#f4f6f8; }
+    h1,h2,h3 { margin: 0 0 10px 0; }
+    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .col { flex:1 1 320px; }
+    #log { border:1px solid #000; padding:10px; height:240px; overflow:auto; background:#fff; }
+    #scores, #dashboard { font-size:14px; }
+    #patient { background:#fff; }
+    button { padding:8px 12px; border-radius:6px; border:1px solid #333; cursor:pointer; }
+    textarea { width:100%; border-radius:6px; border:1px solid #ccc; padding:8px; }
+    input[type="range"] { width:100%; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:6px; background:#2c3e50; color:#fff; margin-right:6px; }
+    .status { font-weight:bold; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border:1px solid #ddd; padding:6px; text-align:left; }
+    th { background:#f0f0f0; }
   </style>
 </head>
 
 <body>
 
-<h2>CHW Simulation System</h2>
+<!-- =====================
+HERO / HEADER
+===================== -->
+<div class="card" style="background:#2c3e50;color:white;">
+  <h1>CHW Training Simulation Platform</h1>
+  <p>Practice trauma-informed conversations with AI-driven patients. Track performance, adjust emotional states, and run multi-user sessions.</p>
+</div>
 
-<select id="scenarioSelect" onchange="loadScenario()">
-  <option value="ashley">Ashley (Methamphetamine)</option>
-  <option value="maria">Maria (Postpartum Depression)</option>
-</select>
+<img src="https://images.unsplash.com/photo-1584515933487-779824d29309"
+     style="width:100%;border-radius:10px;margin-bottom:16px;">
 
-<button onclick="startListening()">🎤 Push to Talk</button>
+<!-- =====================
+USER GUIDE
+===================== -->
+<div class="card">
+  <h3>How to Use</h3>
+  <ol>
+    <li>Select a CHW user and a patient scenario (or load a custom patient).</li>
+    <li>Adjust emotion sliders (optional).</li>
+    <li>Click <b>Push to Talk</b> and ask open-ended, empathetic questions.</li>
+    <li>Review the conversation log and scores.</li>
+  </ol>
+  <b>Tips:</b>
+  <ul>
+    <li>“How are you feeling?” → boosts openness</li>
+    <li>“Why…” → can increase defensiveness</li>
+    <li>Use reflective listening and avoid judgment</li>
+  </ul>
+</div>
 
-<p id="status">Idle</p>
+<div class="row">
 
-<div id="patient"></div>
+  <!-- =====================
+  LEFT COLUMN
+  ===================== -->
+  <div class="col">
 
-<h3>Conversation Log</h3>
-<div id="log"></div>
+    <!-- CHW USER -->
+    <div class="card">
+      <h3>CHW User</h3>
+      <input id="chwName" placeholder="Enter CHW name" />
+      <button onclick="setCHW()">Set Active User</button>
+      <p>Active: <span id="activeCHW" class="badge">None</span></p>
+    </div>
 
-<h3>C3 Scores</h3>
-<div id="scores"></div>
+    <!-- SCENARIO -->
+    <div class="card">
+      <h3>Patient Scenario</h3>
+      <select id="scenarioSelect" onchange="loadScenario()">
+        <option value="ashley">Ashley (Methamphetamine)</option>
+        <option value="maria">Maria (Postpartum Depression)</option>
+      </select>
+      <div id="patient" class="card" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- CUSTOM PATIENT -->
+    <div class="card">
+      <h3>Load Custom Patient</h3>
+      <textarea id="customPatientInput"
+        placeholder="Paste JSON or plain text describing the patient..."></textarea>
+      <br><br>
+      <button onclick="loadCustomPatient()">Load Patient</button>
+    </div>
+
+    <!-- EMOTION CONTROLS -->
+    <div class="card">
+      <h3>Emotion Controls</h3>
+
+      Anxiety: <span id="anxVal">0.7</span>
+      <input type="range" min="0" max="1" step="0.1"
+        value="0.7" onchange="updateEmotionSlider('anxiety', this.value)">
+
+      Defensiveness: <span id="defVal">0.6</span>
+      <input type="range" min="0" max="1" step="0.1"
+        value="0.6" onchange="updateEmotionSlider('defensiveness', this.value)">
+
+      Openness: <span id="openVal">0.2</span>
+      <input type="range" min="0" max="1" step="0.1"
+        value="0.2" onchange="updateEmotionSlider('openness', this.value)">
+    </div>
+
+  </div>
+
+  <!-- =====================
+  RIGHT COLUMN
+  ===================== -->
+  <div class="col">
+
+    <!-- INTERACTION -->
+    <div class="card">
+      <h3>Simulation</h3>
+      <button onclick="startListening()">🎤 Push to Talk</button>
+      <button onclick="exportSession()">Export Session</button>
+      <p class="status">Status: <span id="status">Idle</span></p>
+    </div>
+
+    <!-- LOG -->
+    <div class="card">
+      <h3>Conversation Log</h3>
+      <div id="log"></div>
+    </div>
+
+    <!-- SCORES -->
+    <div class="card">
+      <h3>C3 Scores (Active User)</h3>
+      <div id="scores"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="card">
+      <h3>Instructor Dashboard</h3>
+      <div id="dashboard"></div>
+    </div>
+
+  </div>
+
+</div>
 
 <script>
-
 // =====================
 // STATE
 // =====================
@@ -40,10 +151,12 @@ let recognition = null;
 let listening = false;
 
 let emotionalState = { anxiety:0.7, defensiveness:0.6, openness:0.2 };
-let c3 = { communication:0, empathy:0, assessment:0, support:0 };
 
-let conversationHistory = [];
 let currentPatient = {};
+let conversationHistory = [];
+
+let currentCHW = "";
+let userScores = {}; // { name: {communication, empathy, assessment, support} }
 
 // =====================
 // SCENARIOS
@@ -51,112 +164,135 @@ let currentPatient = {};
 const scenarios = {
   ashley: {
     name: "Ashley",
-    fhir: {
-      Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" }
-    }
+    fhir: { Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" } }
   },
   maria: {
     name: "Maria",
-    fhir: {
-      Patient: { name:"Maria", age:29, condition:"Postpartum Depression" }
-    }
+    fhir: { Patient: { name:"Maria", age:29, condition:"Postpartum Depression" } }
   }
 };
 
 // =====================
+// USER
+// =====================
+function setCHW(){
+  const name = document.getElementById("chwName").value.trim();
+  if(!name) return alert("Enter a name");
+  currentCHW = name;
+  document.getElementById("activeCHW").innerText = name;
+
+  if(!userScores[name]){
+    userScores[name] = {communication:0, empathy:0, assessment:0, support:0};
+  }
+
+  updateScores();
+  updateDashboard();
+}
+
+// =====================
 // LOAD SCENARIO
 // =====================
-function loadScenario() {
+function loadScenario(){
   const key = document.getElementById("scenarioSelect").value;
   currentPatient = scenarios[key];
   conversationHistory = [];
 
   document.getElementById("patient").innerHTML =
-    "<b>Patient:</b> " + currentPatient.name +
-    "<br><b>Condition:</b> " + currentPatient.fhir.Patient.condition;
+    "<b>Patient:</b> "+currentPatient.name+
+    "<br><b>Condition:</b> "+currentPatient.fhir.Patient.condition;
 
-  document.getElementById("log").innerHTML = "";
+  document.getElementById("log").innerHTML="";
 }
 loadScenario();
 
 // =====================
+// CUSTOM PATIENT
+// =====================
+function loadCustomPatient(){
+  const raw = document.getElementById("customPatientInput").value;
+
+  try{
+    const parsed = JSON.parse(raw);
+    currentPatient = { name: parsed.Patient?.name || "Custom", fhir: parsed };
+  }catch{
+    currentPatient = { name:"Custom", fhir:{notes:raw}};
+  }
+
+  document.getElementById("patient").innerHTML =
+    "<b>Custom Patient Loaded</b>";
+
+  conversationHistory=[];
+  document.getElementById("log").innerHTML="";
+}
+
+// =====================
+// EMOTION
+// =====================
+function updateEmotionSlider(type,val){
+  emotionalState[type]=parseFloat(val);
+
+  if(type==="anxiety") document.getElementById("anxVal").innerText=val;
+  if(type==="defensiveness") document.getElementById("defVal").innerText=val;
+  if(type==="openness") document.getElementById("openVal").innerText=val;
+}
+
+// =====================
 // MIC
 // =====================
-function startListening() {
+function startListening(){
+  if(!currentCHW) return alert("Set CHW first");
 
-  if (!recognition) {
+  if(!recognition){
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "en-US";
+    recognition.lang="en-US";
 
-    recognition.onresult = async (event) => {
-      const text = event.results[0][0].transcript;
-
+    recognition.onresult = async (e)=>{
+      const text = e.results[0][0].transcript;
       logMessage("CHW", text);
       evaluateCHW(text);
 
-      document.getElementById("status").innerText = "Thinking...";
+      document.getElementById("status").innerText="Thinking...";
       await processConversation(text);
     };
 
-    recognition.onend = () => {
-      listening = false;
-      document.getElementById("status").innerText = "Idle";
-    };
+    recognition.onend=()=>{ listening=false; document.getElementById("status").innerText="Idle"; };
   }
 
-  if (!listening) {
-    listening = true;
+  if(!listening){
+    listening=true;
     recognition.start();
-    document.getElementById("status").innerText = "Listening...";
+    document.getElementById("status").innerText="Listening...";
   }
 }
 
 // =====================
-// AI CALL (FIXED)
+// AI CALL
 // =====================
-async function processConversation(userInput) {
+async function processConversation(userInput){
 
-  try {
-
+  try{
     const response = await fetch("https://chw-backend-2n4n.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        messages: [
-          { role:"system", content: buildPrompt() },
+        messages:[
+          {role:"system", content:buildPrompt()},
           ...conversationHistory,
-          { role:"user", content:userInput }
+          {role:"user", content:userInput}
         ]
       })
     });
 
     const data = await response.json();
-    console.log("PARSED RESPONSE:", data);
+    console.log("RESPONSE:", data);
 
-    let aiText = "";
+    let aiText="";
 
-    // ✅ OpenAI standard format
-    if (data.choices && data.choices.length > 0) {
-      aiText = data.choices[0].message.content;
-
-    // ✅ Custom backend formats
-    } else if (data.message) {
-      aiText = data.message;
-
-    } else if (data.reply) {
-      aiText = data.reply;
-
-    // ❌ Error case
-    } else if (data.error) {
-      aiText = "ERROR: " + data.error.message;
-
-    // ❌ Unknown fallback
-    } else {
-      console.error("UNKNOWN FORMAT:", data);
-      aiText = "I’m having trouble responding right now.";
-    }
+    if(data.choices) aiText=data.choices[0].message.content;
+    else if(data.message) aiText=data.message;
+    else if(data.reply) aiText=data.reply;
+    else if(data.error) aiText="ERROR: "+data.error.message;
+    else aiText="System issue";
 
     conversationHistory.push({role:"user", content:userInput});
     conversationHistory.push({role:"assistant", content:aiText});
@@ -164,66 +300,77 @@ async function processConversation(userInput) {
     logMessage(currentPatient.name, aiText);
     speak(aiText);
 
-  } catch (err) {
-    console.error("FETCH ERROR:", err);
-    document.getElementById("status").innerText = "Connection error";
+  }catch(e){
+    document.getElementById("status").innerText="Connection error";
   }
 
-  document.getElementById("status").innerText = "Idle";
+  document.getElementById("status").innerText="Idle";
 }
 
 // =====================
 // PROMPT
 // =====================
-function buildPrompt() {
+function buildPrompt(){
   return `
-You are ${currentPatient.name}, a patient in a CHW session.
+You are ${currentPatient.name}, a patient.
 
-Respond clearly and directly first, then add emotion.
-Keep answers under 2 sentences.
+Patient Data:
+${JSON.stringify(currentPatient.fhir)}
+
+Emotion:
+Anxiety ${emotionalState.anxiety}
+Defensiveness ${emotionalState.defensiveness}
+Openness ${emotionalState.openness}
+
+Respond clearly and naturally. Max 2 sentences.
 `;
 }
 
 // =====================
 // SCORING
 // =====================
-function evaluateCHW(input) {
-  const text = input.toLowerCase();
+function evaluateCHW(input){
+  const t=input.toLowerCase();
+  const s=userScores[currentCHW];
 
-  if (text.length > 10) c3.communication++;
-  if (text.includes("feeling")) c3.empathy += 2;
-  if (text.includes("when")) c3.assessment += 2;
-  if (text.includes("help")) c3.support += 2;
+  if(t.length>10) s.communication++;
+  if(t.includes("feeling")) s.empathy+=2;
+  if(t.includes("when")) s.assessment+=2;
+  if(t.includes("help")) s.support+=2;
 
   updateScores();
+  updateDashboard();
 }
 
 function updateScores(){
-  document.getElementById("scores").innerHTML = `
-  Communication: ${c3.communication}<br>
-  Empathy: ${c3.empathy}<br>
-  Assessment: ${c3.assessment}<br>
-  Support: ${c3.support}
-  `;
+  if(!currentCHW) return;
+
+  const s=userScores[currentCHW];
+
+  document.getElementById("scores").innerHTML=
+    `Comm:${s.communication}<br>Empathy:${s.empathy}<br>Assess:${s.assessment}<br>Support:${s.support}`;
+}
+
+function updateDashboard(){
+  let html="<table><tr><th>Name</th><th>Comm</th><th>Emp</th><th>Assess</th><th>Support</th></tr>";
+
+  for(const name in userScores){
+    const s=userScores[name];
+    html+=`<tr><td>${name}</td><td>${s.communication}</td><td>${s.empathy}</td><td>${s.assessment}</td><td>${s.support}</td></tr>`;
+  }
+
+  html+="</table>";
+  document.getElementById("dashboard").innerHTML=html;
 }
 
 // =====================
-// VOICE (FIXED)
+// SPEAK
 // =====================
 function speak(text){
-
-  speechSynthesis.cancel(); // 🔥 prevents repeats
-
-  const utter = new SpeechSynthesisUtterance(text);
-
-  const voices = speechSynthesis.getVoices();
-  utter.voice =
-    voices.find(v => v.name.includes("Female")) ||
-    voices[0];
-
-  utter.rate = 0.92;
-  utter.pitch = 0.85;
-
+  speechSynthesis.cancel();
+  const utter=new SpeechSynthesisUtterance(text);
+  const voices=speechSynthesis.getVoices();
+  utter.voice=voices.find(v=>v.name.includes("Female"))||voices[0];
   speechSynthesis.speak(utter);
 }
 
@@ -231,11 +378,33 @@ function speak(text){
 // LOG
 // =====================
 function logMessage(role,text){
-  const log = document.getElementById("log");
-  const p = document.createElement("p");
-  p.innerHTML = "<b>"+role+":</b> "+text;
+  const log=document.getElementById("log");
+  const p=document.createElement("p");
+  p.innerHTML="<b>"+role+":</b> "+text;
   log.appendChild(p);
-  log.scrollTop = log.scrollHeight;
+  log.scrollTop=log.scrollHeight;
+}
+
+// =====================
+// EXPORT
+// =====================
+function exportSession(){
+  let csv="User,Role,Message\n";
+
+  conversationHistory.forEach(m=>{
+    csv+=`${currentCHW},${m.role},${m.content.replace(/,/g," ")}\n`;
+  });
+
+  for(const u in userScores){
+    const s=userScores[u];
+    csv+=`${u},SCORES,Comm:${s.communication}|Emp:${s.empathy}|Assess:${s.assessment}|Support:${s.support}\n`;
+  }
+
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="chw_session.csv";
+  a.click();
 }
 
 </script>
