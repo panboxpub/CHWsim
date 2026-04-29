@@ -136,43 +136,46 @@ async function processConversation(userInput) {
 
   try {
 
-    const response = await fetch("https://chw-backend.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: [
-          { role:"system", content: buildPrompt() },
-          ...conversationHistory,
-          { role:"user", content:userInput }
-        ]
-      })
-    });
+  const response = await fetch("https://chw-backend.onrender.com/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages: [
+        { role:"system", content: buildPrompt() },
+        ...conversationHistory,
+        { role:"user", content:userInput }
+      ]
+    })
+  });
 
-    const data = await response.json();
-    console.log("BACKEND RESPONSE:", data);
+  console.log("RAW RESPONSE:", response);
 
-    if (!data.choices) {
-      console.error("Invalid response:", data);
-      document.getElementById("status").innerText = "Backend error";
-      return;
-    }
+  const data = await response.json();
 
-    const aiText = data.choices[0].message.content;
+  console.log("PARSED RESPONSE:", data);
 
-    conversationHistory.push({role:"user", content:userInput});
-    conversationHistory.push({role:"assistant", content:aiText});
+  // FORCE DISPLAY OF RESPONSE
+  document.getElementById("status").innerText =
+    JSON.stringify(data).substring(0, 120);
 
-    logMessage(currentPatient.name, aiText);
-    speak(aiText);
+  let aiText = "";
 
-  } catch (err) {
-    console.error("Fetch error:", err);
-    document.getElementById("status").innerText = "Connection error";
+  if (data.choices && data.choices.length > 0) {
+    aiText = data.choices[0].message.content;
+  } else if (data.error) {
+    aiText = "Error: " + data.error.message;
+  } else {
+    aiText = "Unexpected response format";
   }
 
-  document.getElementById("status").innerText = "Idle";
+  logMessage(currentPatient.name, aiText);
+  speak(aiText);
+
+} catch (err) {
+  console.error("FETCH ERROR:", err);
+  document.getElementById("status").innerText = "Connection error";
 }
 
 // =====================
