@@ -12,7 +12,7 @@
 
 <body>
 
-<h2>CHW Simulation System</h2>
+<h2>CHW Simulation System (Debug Mode)</h2>
 
 <select id="scenarioSelect" onchange="loadScenario()">
   <option value="ashley">Ashley (Methamphetamine)</option>
@@ -20,7 +20,6 @@
 </select>
 
 <button onclick="startListening()">🎤 Push to Talk</button>
-<button onclick="exportData()">Export Session</button>
 
 <p id="status">Idle</p>
 
@@ -29,19 +28,18 @@
 <h3>Conversation Log</h3>
 <div id="log"></div>
 
-<h3>C3 Competency Scores</h3>
+<h3>C3 Scores</h3>
 <div id="scores"></div>
 
 <script>
 
 // =====================
-// GLOBAL STATE
+// STATE
 // =====================
 let recognition = null;
 let listening = false;
 
 let emotionalState = { anxiety:0.7, defensiveness:0.6, openness:0.2 };
-
 let c3 = { communication:0, empathy:0, assessment:0, support:0 };
 
 let conversationHistory = [];
@@ -54,28 +52,24 @@ const scenarios = {
   ashley: {
     name: "Ashley",
     fhir: {
-      Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" },
-      Observation: { sleep:"48 hours none", behavior:"agitated" }
+      Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" }
     }
   },
   maria: {
     name: "Maria",
     fhir: {
-      Patient: { name:"Maria", age:29, condition:"Postpartum Depression" },
-      Observation: { mood:"low", energy:"fatigued" }
+      Patient: { name:"Maria", age:29, condition:"Postpartum Depression" }
     }
   }
 };
 
 // =====================
-// LOAD SCENARIO
+// LOAD
 // =====================
 function loadScenario() {
   const key = document.getElementById("scenarioSelect").value;
   currentPatient = scenarios[key];
-
   conversationHistory = [];
-  resetState();
 
   document.getElementById("patient").innerHTML =
     "<b>Patient:</b> " + currentPatient.name +
@@ -83,15 +77,10 @@ function loadScenario() {
 
   document.getElementById("log").innerHTML = "";
 }
-
-function resetState(){
-  emotionalState = { anxiety:0.7, defensiveness:0.6, openness:0.2 };
-  c3 = { communication:0, empathy:0, assessment:0, support:0 };
-  updateScores();
-}
+loadScenario();
 
 // =====================
-// PUSH TO TALK
+// MIC
 // =====================
 function startListening() {
 
@@ -113,11 +102,6 @@ function startListening() {
       listening = false;
       document.getElementById("status").innerText = "Idle";
     };
-
-    recognition.onerror = (e) => {
-      console.error("Mic error:", e);
-      document.getElementById("status").innerText = "Mic error";
-    };
   }
 
   if (!listening) {
@@ -128,54 +112,58 @@ function startListening() {
 }
 
 // =====================
-// AI CALL (BACKEND)
+// AI CALL (DEBUG)
 // =====================
 async function processConversation(userInput) {
 
-  updateEmotion(userInput);
-
   try {
 
-  const response = await fetch("https://chw-backend.onrender.com/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      messages: [
-        { role:"system", content: buildPrompt() },
-        ...conversationHistory,
-        { role:"user", content:userInput }
-      ]
-    })
-  });
+    const response = await fetch("https://chw-backend.onrender.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: [
+          { role:"system", content: buildPrompt() },
+          ...conversationHistory,
+          { role:"user", content:userInput }
+        ]
+      })
+    });
 
-  console.log("RAW RESPONSE:", response);
+    console.log("RAW RESPONSE:", response);
 
-  const data = await response.json();
+    const data = await response.json();
 
-  console.log("PARSED RESPONSE:", data);
+    console.log("PARSED RESPONSE:", data);
 
-  // FORCE DISPLAY OF RESPONSE
-  document.getElementById("status").innerText =
-    JSON.stringify(data).substring(0, 120);
+    // SHOW RAW RESPONSE ON SCREEN
+    document.getElementById("status").innerText =
+      JSON.stringify(data).substring(0, 120);
 
-  let aiText = "";
+    let aiText = "";
 
-  if (data.choices && data.choices.length > 0) {
-    aiText = data.choices[0].message.content;
-  } else if (data.error) {
-    aiText = "Error: " + data.error.message;
-  } else {
-    aiText = "Unexpected response format";
+    if (data.choices && data.choices.length > 0) {
+      aiText = data.choices[0].message.content;
+    } else if (data.error) {
+      aiText = "ERROR: " + data.error.message;
+    } else {
+      aiText = "Unexpected response format";
+    }
+
+    conversationHistory.push({role:"user", content:userInput});
+    conversationHistory.push({role:"assistant", content:aiText});
+
+    logMessage(currentPatient.name, aiText);
+    speak(aiText);
+
+  } catch (err) {
+    console.error("FETCH ERROR:", err);
+    document.getElementById("status").innerText = "Connection error";
   }
 
-  logMessage(currentPatient.name, aiText);
-  speak(aiText);
-
-} catch (err) {
-  console.error("FETCH ERROR:", err);
-  document.getElementById("status").innerText = "Connection error";
+  document.getElementById("status").innerText = "Idle";
 }
 
 // =====================
@@ -183,49 +171,20 @@ async function processConversation(userInput) {
 // =====================
 function buildPrompt() {
   return `
-You are ${currentPatient.name}, a patient in a trauma-informed CHW session.
+You are ${currentPatient.name}, a patient in a CHW session.
 
-FHIR:
-${JSON.stringify(currentPatient.fhir)}
-
-STATE:
-Anxiety ${emotionalState.anxiety}
-Defensiveness ${emotionalState.defensiveness}
-Openness ${emotionalState.openness}
-
-RULES:
-- Answer directly first
-- Then add emotion
-- Avoid vague responses
-- Build trust gradually
-
-Limit responses to 2 sentences
+Respond clearly and directly first, then add emotion.
+Keep answers under 2 sentences.
 `;
 }
 
 // =====================
-// EMOTION
-// =====================
-function updateEmotion(input) {
-  input = input.toLowerCase();
-
-  if (input.includes("feeling")) emotionalState.openness += 0.1;
-  if (input.includes("why")) emotionalState.defensiveness += 0.1;
-
-  emotionalState.anxiety = clamp(emotionalState.anxiety,0,1);
-  emotionalState.defensiveness = clamp(emotionalState.defensiveness,0,1);
-  emotionalState.openness = clamp(emotionalState.openness,0,1);
-}
-
-function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
-
-// =====================
-// C3 SCORING
+// SCORING
 // =====================
 function evaluateCHW(input) {
   const text = input.toLowerCase();
 
-  if (text.length > 12) c3.communication++;
+  if (text.length > 10) c3.communication++;
   if (text.includes("feeling")) c3.empathy += 2;
   if (text.includes("when")) c3.assessment += 2;
   if (text.includes("help")) c3.support += 2;
@@ -243,7 +202,7 @@ function updateScores(){
 }
 
 // =====================
-// VOICE (FEMALE)
+// VOICE
 // =====================
 function speak(text){
 
@@ -251,9 +210,7 @@ function speak(text){
     const voices = speechSynthesis.getVoices();
 
     let voice =
-      voices.find(v => v.name.includes("Google US English Female")) ||
-      voices.find(v => v.name.includes("Zira")) ||
-      voices.find(v => v.name.toLowerCase().includes("female")) ||
+      voices.find(v => v.name.includes("Female")) ||
       voices[0];
 
     const utter = new SpeechSynthesisUtterance(text);
@@ -281,27 +238,6 @@ function logMessage(role,text){
   log.appendChild(p);
   log.scrollTop = log.scrollHeight;
 }
-
-// =====================
-// EXPORT
-// =====================
-function exportData() {
-  let csv = "Role,Message\n";
-
-  conversationHistory.forEach(msg => {
-    csv += msg.role + "," + msg.content.replace(",", " ") + "\n";
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const link = document.createElement("a");
-
-  link.href = URL.createObjectURL(blob);
-  link.download = "chw_session.csv";
-  link.click();
-}
-
-// INIT
-loadScenario();
 
 </script>
 
