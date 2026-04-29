@@ -12,7 +12,7 @@
 
 <body>
 
-<h2>CHW Simulation System (Debug Mode)</h2>
+<h2>CHW Simulation System</h2>
 
 <select id="scenarioSelect" onchange="loadScenario()">
   <option value="ashley">Ashley (Methamphetamine)</option>
@@ -64,7 +64,7 @@ const scenarios = {
 };
 
 // =====================
-// LOAD
+// LOAD SCENARIO
 // =====================
 function loadScenario() {
   const key = document.getElementById("scenarioSelect").value;
@@ -112,7 +112,7 @@ function startListening() {
 }
 
 // =====================
-// AI CALL (DEBUG)
+// AI CALL (FIXED)
 // =====================
 async function processConversation(userInput) {
 
@@ -132,24 +132,30 @@ async function processConversation(userInput) {
       })
     });
 
-    console.log("RAW RESPONSE:", response);
-
     const data = await response.json();
-
     console.log("PARSED RESPONSE:", data);
-
-    // SHOW RAW RESPONSE ON SCREEN
-    document.getElementById("status").innerText =
-      JSON.stringify(data).substring(0, 120);
 
     let aiText = "";
 
+    // ✅ OpenAI standard format
     if (data.choices && data.choices.length > 0) {
       aiText = data.choices[0].message.content;
+
+    // ✅ Custom backend formats
+    } else if (data.message) {
+      aiText = data.message;
+
+    } else if (data.reply) {
+      aiText = data.reply;
+
+    // ❌ Error case
     } else if (data.error) {
       aiText = "ERROR: " + data.error.message;
+
+    // ❌ Unknown fallback
     } else {
-      aiText = "Unexpected response format";
+      console.error("UNKNOWN FORMAT:", data);
+      aiText = "I’m having trouble responding right now.";
     }
 
     conversationHistory.push({role:"user", content:userInput});
@@ -202,30 +208,23 @@ function updateScores(){
 }
 
 // =====================
-// VOICE
+// VOICE (FIXED)
 // =====================
 function speak(text){
 
-  function setVoice(){
-    const voices = speechSynthesis.getVoices();
+  speechSynthesis.cancel(); // 🔥 prevents repeats
 
-    let voice =
-      voices.find(v => v.name.includes("Female")) ||
-      voices[0];
+  const utter = new SpeechSynthesisUtterance(text);
 
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.voice = voice;
-    utter.rate = 0.92;
-    utter.pitch = 0.85;
+  const voices = speechSynthesis.getVoices();
+  utter.voice =
+    voices.find(v => v.name.includes("Female")) ||
+    voices[0];
 
-    speechSynthesis.speak(utter);
-  }
+  utter.rate = 0.92;
+  utter.pitch = 0.85;
 
-  if (speechSynthesis.getVoices().length === 0) {
-    speechSynthesis.onvoiceschanged = setVoice;
-  } else {
-    setVoice();
-  }
+  speechSynthesis.speak(utter);
 }
 
 // =====================
