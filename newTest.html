@@ -1,310 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>CHW Training Simulation Platform</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background:#f4f6f8; }
-    h1,h2,h3 { margin: 0 0 10px 0; }
-    .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .col { flex:1 1 320px; }
-    #log { border:1px solid #000; padding:10px; height:240px; overflow:auto; background:#fff; }
-    #scores, #dashboard { font-size:14px; }
-    #patient { background:#fff; }
-    button { padding:8px 12px; border-radius:6px; border:1px solid #333; cursor:pointer; }
-    textarea { width:100%; border-radius:6px; border:1px solid #ccc; padding:8px; }
-    input[type="range"] { width:100%; }
-    .badge { display:inline-block; padding:4px 8px; border-radius:6px; background:#2c3e50; color:#fff; margin-right:6px; }
-    .status { font-weight:bold; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { border:1px solid #ddd; padding:6px; text-align:left; }
-    th { background:#f0f0f0; }
-  </style>
+<meta charset="UTF-8">
+<title>CHW Simulation Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { font-family: Arial, sans-serif; margin: 16px; background:#f4f6f8; }
+header, main, footer { max-width: 1100px; margin: auto; }
+.card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:14px; margin-bottom:14px; }
+.row { display:flex; gap:14px; flex-wrap:wrap; }
+.col { flex:1 1 340px; }
+button, input, select, textarea { padding:8px; border-radius:6px; border:1px solid #333; }
+textarea { width:100%; min-height:100px; }
+#log { height:220px; overflow:auto; border:1px solid #000; padding:10px; background:#fff; }
+.badge { background:#2c3e50;color:#fff;padding:3px 6px;border-radius:6px;margin-left:6px; }
+.hidden { display:none; }
+.small { font-size:12px; color:#555; }
+table { width:100%; border-collapse:collapse; }
+th,td { border:1px solid #ddd; padding:6px; }
+th { background:#eee; }
+</style>
 </head>
 
 <body>
 
-<!-- =====================
-HERO / HEADER
-===================== -->
-<div class="card" style="background:#2c3e50;color:white;">
-  <h1>CHW Training Simulation Platform</h1>
-  <p>Practice trauma-informed conversations with AI-driven patients. Track performance, adjust emotional states, and run multi-user sessions.</p>
-</div>
+<header role="banner" class="card">
+  <div class="row">
+    <div class="col">
+      <h1>CHW Training Simulation Platform</h1>
+      <p class="small">Accessible, AI-driven patient interaction training</p>
+    </div>
+    <div class="col">
+      <!-- SMALL BANNER IMAGE -->
+      <img alt="Healthcare training banner"
+           src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800"
+           style="width:100%;border-radius:8px;">
+    </div>
+  </div>
 
-<img src="https://images.unsplash.com/photo-1584515933487-779824d29309"
-     style="width:100%;border-radius:10px;margin-bottom:16px;">
+  <!-- DISCLAIMER -->
+  <div style="margin-top:10px;padding:10px;border:1px solid #c0392b;border-radius:8px;background:#fdecea;">
+    <strong>Training Use Only:</strong>
+    This application is for simulation and training purposes only. 
+    Working with real clients requires additional training under the supervision of a certified Community Health Worker professional.
+  </div>
+</header>
 
-<!-- =====================
-USER GUIDE
-===================== -->
+<main role="main">
+
+<!-- LOGIN / ROLE -->
 <div class="card">
-  <h3>How to Use</h3>
-  <ol>
-    <li>Select a CHW user and a patient scenario (or load a custom patient).</li>
-    <li>Adjust emotion sliders (optional).</li>
-    <li>Click <b>Push to Talk</b> and ask open-ended, empathetic questions.</li>
-    <li>Review the conversation log and scores.</li>
-  </ol>
-  <b>Tips:</b>
-  <ul>
-    <li>“How are you feeling?” → boosts openness</li>
-    <li>“Why…” → can increase defensiveness</li>
-    <li>Use reflective listening and avoid judgment</li>
-  </ul>
+  <h3>Login</h3>
+  <input id="userName" aria-label="User name" placeholder="Name">
+  <select id="roleSelect" aria-label="Select role">
+    <option value="learner">Learner</option>
+    <option value="instructor">Instructor</option>
+  </select>
+  <button onclick="login()">Enter</button>
+  <span id="activeUser" class="badge">None</span>
 </div>
+
+<div id="app" class="hidden">
 
 <div class="row">
 
-  <!-- =====================
-  LEFT COLUMN
-  ===================== -->
-  <div class="col">
+<!-- LEFT -->
+<div class="col">
 
-    <!-- CHW USER -->
-    <div class="card">
-      <h3>CHW User</h3>
-      <input id="chwName" placeholder="Enter CHW name" />
-      <button onclick="setCHW()">Set Active User</button>
-      <p>Active: <span id="activeCHW" class="badge">None</span></p>
-    </div>
+<div class="card">
+<h3>Patient</h3>
+<select id="scenario" onchange="loadScenario()">
+<option value="ashley">Ashley (Methamphetamine)</option>
+<option value="maria">Maria (Postpartum Depression)</option>
+</select>
 
-    <!-- SCENARIO -->
-    <div class="card">
-      <h3>Patient Scenario</h3>
-      <select id="scenarioSelect" onchange="loadScenario()">
-        <option value="ashley">Ashley (Methamphetamine)</option>
-        <option value="maria">Maria (Postpartum Depression)</option>
-      </select>
-      <div id="patient" class="card" style="margin-top:10px;"></div>
-    </div>
+<div id="patient"></div>
 
-    <!-- CUSTOM PATIENT -->
-    <div class="card">
-      <h3>Load Custom Patient</h3>
-      <textarea id="customPatientInput"
-        placeholder="Paste JSON or plain text describing the patient..."></textarea>
-      <br><br>
-      <button onclick="loadCustomPatient()">Load Patient</button>
-    </div>
+<h4>Upload / Paste FHIR</h4>
+<textarea id="patientText" aria-label="Patient data"></textarea>
+<button onclick="loadPatient()">Load Patient</button>
+</div>
 
-    <!-- EMOTION CONTROLS -->
-    <div class="card">
-      <h3>Emotion Controls</h3>
+<div class="card">
+<h3>Emotion Controls</h3>
+<label>Anxiety <input type="range" min="0" max="1" step="0.1" onchange="emotion.anxiety=this.value"></label><br>
+<label>Defensiveness <input type="range" min="0" max="1" step="0.1" onchange="emotion.defensiveness=this.value"></label><br>
+<label>Openness <input type="range" min="0" max="1" step="0.1" onchange="emotion.openness=this.value"></label>
+</div>
 
-      Anxiety: <span id="anxVal">0.7</span>
-      <input type="range" min="0" max="1" step="0.1"
-        value="0.7" onchange="updateEmotionSlider('anxiety', this.value)">
-
-      Defensiveness: <span id="defVal">0.6</span>
-      <input type="range" min="0" max="1" step="0.1"
-        value="0.6" onchange="updateEmotionSlider('defensiveness', this.value)">
-
-      Openness: <span id="openVal">0.2</span>
-      <input type="range" min="0" max="1" step="0.1"
-        value="0.2" onchange="updateEmotionSlider('openness', this.value)">
-    </div>
-
-  </div>
-
-  <!-- =====================
-  RIGHT COLUMN
-  ===================== -->
-  <div class="col">
-
-    <!-- INTERACTION -->
-    <div class="card">
-      <h3>Simulation</h3>
-      <button onclick="startListening()">🎤 Push to Talk</button>
-      <button onclick="exportSession()">Export Session</button>
-      <p class="status">Status: <span id="status">Idle</span></p>
-    </div>
-
-    <!-- LOG -->
-    <div class="card">
-      <h3>Conversation Log</h3>
-      <div id="log"></div>
-    </div>
-
-    <!-- SCORES -->
-    <div class="card">
-      <h3>C3 Scores (Active User)</h3>
-      <div id="scores"></div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div class="card">
-      <h3>Instructor Dashboard</h3>
-      <div id="dashboard"></div>
-    </div>
-
-  </div>
+<div class="card">
+<label>
+<input type="checkbox" id="rtToggle"> Real-time voice
+</label>
+<button onclick="startListening()">🎤 Talk</button>
+<p>Status: <span id="status">Idle</span></p>
+</div>
 
 </div>
 
+<!-- RIGHT -->
+<div class="col">
+
+<div class="card">
+<h3>Conversation</h3>
+<div id="log"></div>
+</div>
+
+<div class="card">
+<h3>Scores</h3>
+<div id="scores"></div>
+</div>
+
+<div class="card">
+<h3>Analytics Dashboard</h3>
+<div id="dashboard"></div>
+<button onclick="exportAnalytics()">Export CSV</button>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</main>
+
+<footer role="contentinfo" class="small">
+  <p>© CHW Simulation Platform</p>
+</footer>
+
 <script>
+
+// =====================
+// CONFIG
+// =====================
+const BASE = "https://chw-backend-2n4n.onrender.com";
+
 // =====================
 // STATE
 // =====================
-let recognition = null;
-let listening = false;
-
-let emotionalState = { anxiety:0.7, defensiveness:0.6, openness:0.2 };
-
-let currentPatient = {};
-let conversationHistory = [];
-
-let currentCHW = "";
-let userScores = {}; // { name: {communication, empathy, assessment, support} }
+let user = "";
+let role = "learner";
+let emotion = {anxiety:0.5, defensiveness:0.5, openness:0.3};
+let patient = {};
+let history = [];
+let scores = {};
+let recognition;
+let ws; // MetaHuman stream
 
 // =====================
-// SCENARIOS
+// LOGIN
 // =====================
-const scenarios = {
-  ashley: {
-    name: "Ashley",
-    fhir: { Patient: { name:"Ashley", age:24, condition:"Methamphetamine Use Disorder" } }
-  },
-  maria: {
-    name: "Maria",
-    fhir: { Patient: { name:"Maria", age:29, condition:"Postpartum Depression" } }
-  }
-};
+function login(){
+  user = document.getElementById("userName").value;
+  role = document.getElementById("roleSelect").value;
 
-// =====================
-// USER
-// =====================
-function setCHW(){
-  const name = document.getElementById("chwName").value.trim();
-  if(!name) return alert("Enter a name");
-  currentCHW = name;
-  document.getElementById("activeCHW").innerText = name;
+  if(!user) return alert("Enter name");
 
-  if(!userScores[name]){
-    userScores[name] = {communication:0, empathy:0, assessment:0, support:0};
-  }
+  document.getElementById("activeUser").innerText = user+" ("+role+")";
+  document.getElementById("app").classList.remove("hidden");
 
-  updateScores();
-  updateDashboard();
+  if(!scores[user]) scores[user]={c:0,e:0,a:0,s:0};
 }
 
 // =====================
-// LOAD SCENARIO
+// SCENARIO
 // =====================
 function loadScenario(){
-  const key = document.getElementById("scenarioSelect").value;
-  currentPatient = scenarios[key];
-  conversationHistory = [];
+  const s = document.getElementById("scenario").value;
 
-  document.getElementById("patient").innerHTML =
-    "<b>Patient:</b> "+currentPatient.name+
-    "<br><b>Condition:</b> "+currentPatient.fhir.Patient.condition;
-
-  document.getElementById("log").innerHTML="";
-}
-loadScenario();
-
-// =====================
-// CUSTOM PATIENT
-// =====================
-function loadCustomPatient(){
-  const raw = document.getElementById("customPatientInput").value;
-
-  try{
-    const parsed = JSON.parse(raw);
-    currentPatient = { name: parsed.Patient?.name || "Custom", fhir: parsed };
-  }catch{
-    currentPatient = { name:"Custom", fhir:{notes:raw}};
+  if(s==="ashley"){
+    patient={name:"Ashley", condition:"Methamphetamine"};
+  } else {
+    patient={name:"Maria", condition:"Postpartum Depression"};
   }
 
-  document.getElementById("patient").innerHTML =
-    "<b>Custom Patient Loaded</b>";
-
-  conversationHistory=[];
-  document.getElementById("log").innerHTML="";
+  document.getElementById("patient").innerText =
+    patient.name+" - "+patient.condition;
 }
 
 // =====================
-// EMOTION
+// PATIENT LOAD
 // =====================
-function updateEmotionSlider(type,val){
-  emotionalState[type]=parseFloat(val);
-
-  if(type==="anxiety") document.getElementById("anxVal").innerText=val;
-  if(type==="defensiveness") document.getElementById("defVal").innerText=val;
-  if(type==="openness") document.getElementById("openVal").innerText=val;
+function loadPatient(){
+  try{ patient = JSON.parse(document.getElementById("patientText").value); }
+  catch{ patient = {notes:document.getElementById("patientText").value}; }
 }
 
 // =====================
-// MIC
+// SPEECH
 // =====================
 function startListening(){
-  if(!currentCHW) return alert("Set CHW first");
 
-  if(!recognition){
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang="en-US";
-
-    recognition.onresult = async (e)=>{
-      const text = e.results[0][0].transcript;
-      logMessage("CHW", text);
-      evaluateCHW(text);
-
-      document.getElementById("status").innerText="Thinking...";
-      await processConversation(text);
-    };
-
-    recognition.onend=()=>{ listening=false; document.getElementById("status").innerText="Idle"; };
-  }
-
-  if(!listening){
-    listening=true;
+  if(document.getElementById("rtToggle").checked){
+    if(!recognition){
+      recognition = new (window.SpeechRecognition||window.webkitSpeechRecognition)();
+      recognition.continuous=true;
+      recognition.onresult=e=>{
+        process(e.results[e.results.length-1][0].transcript);
+      };
+    }
     recognition.start();
-    document.getElementById("status").innerText="Listening...";
+  } else {
+    let r = new (window.SpeechRecognition||window.webkitSpeechRecognition)();
+    r.onresult=e=>process(e.results[0][0].transcript);
+    r.start();
   }
 }
 
 // =====================
-// AI CALL
+// AI
 // =====================
-async function processConversation(userInput){
+async function process(text){
 
-  try{
-    const response = await fetch("https://chw-backend-2n4n.onrender.com/chat", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        messages:[
-          {role:"system", content:buildPrompt()},
-          ...conversationHistory,
-          {role:"user", content:userInput}
-        ]
-      })
-    });
+  log("CHW", text);
+  score(text);
 
-    const data = await response.json();
-    console.log("RESPONSE:", data);
+  let res = await fetch(BASE+"/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      messages:[
+        {role:"system",content:buildPrompt()},
+        {role:"user",content:text}
+      ]
+    })
+  });
 
-    let aiText="";
+  let data = await res.json();
 
-    if(data.choices) aiText=data.choices[0].message.content;
-    else if(data.message) aiText=data.message;
-    else if(data.reply) aiText=data.reply;
-    else if(data.error) aiText="ERROR: "+data.error.message;
-    else aiText="System issue";
+  let reply = data.choices?.[0]?.message?.content || data.message || "Error";
 
-    conversationHistory.push({role:"user", content:userInput});
-    conversationHistory.push({role:"assistant", content:aiText});
+  log("Patient", reply);
+  speak(reply);
 
-    logMessage(currentPatient.name, aiText);
-    speak(aiText);
+  saveSession(text, reply);
 
-  }catch(e){
-    document.getElementById("status").innerText="Connection error";
-  }
-
-  document.getElementById("status").innerText="Idle";
+  sendToMetaHuman(reply);
 }
 
 // =====================
@@ -312,99 +244,105 @@ async function processConversation(userInput){
 // =====================
 function buildPrompt(){
   return `
-You are ${currentPatient.name}, a patient.
-
-Patient Data:
-${JSON.stringify(currentPatient.fhir)}
-
-Emotion:
-Anxiety ${emotionalState.anxiety}
-Defensiveness ${emotionalState.defensiveness}
-Openness ${emotionalState.openness}
-
-Respond clearly and naturally. Max 2 sentences.
+Patient: ${JSON.stringify(patient)}
+Emotion: ${JSON.stringify(emotion)}
+Respond naturally in 1-2 sentences.
 `;
 }
 
 // =====================
 // SCORING
 // =====================
-function evaluateCHW(input){
-  const t=input.toLowerCase();
-  const s=userScores[currentCHW];
-
-  if(t.length>10) s.communication++;
-  if(t.includes("feeling")) s.empathy+=2;
-  if(t.includes("when")) s.assessment+=2;
-  if(t.includes("help")) s.support+=2;
-
+function score(t){
+  let s=scores[user];
+  if(t.length>10) s.c++;
+  if(t.includes("feel")) s.e+=2;
+  if(t.includes("when")) s.a+=2;
+  if(t.includes("help")) s.s+=2;
   updateScores();
-  updateDashboard();
 }
 
 function updateScores(){
-  if(!currentCHW) return;
-
-  const s=userScores[currentCHW];
-
-  document.getElementById("scores").innerHTML=
-    `Comm:${s.communication}<br>Empathy:${s.empathy}<br>Assess:${s.assessment}<br>Support:${s.support}`;
+  let s=scores[user];
+  document.getElementById("scores").innerText =
+    `Comm:${s.c} Emp:${s.e} Assess:${s.a} Support:${s.s}`;
+  updateDashboard();
 }
 
 function updateDashboard(){
-  let html="<table><tr><th>Name</th><th>Comm</th><th>Emp</th><th>Assess</th><th>Support</th></tr>";
-
-  for(const name in userScores){
-    const s=userScores[name];
-    html+=`<tr><td>${name}</td><td>${s.communication}</td><td>${s.empathy}</td><td>${s.assessment}</td><td>${s.support}</td></tr>`;
+  let html="<table><tr><th>User</th><th>C</th><th>E</th><th>A</th><th>S</th></tr>";
+  for(let u in scores){
+    let s=scores[u];
+    html+=`<tr><td>${u}</td><td>${s.c}</td><td>${s.e}</td><td>${s.a}</td><td>${s.s}</td></tr>`;
   }
-
   html+="</table>";
   document.getElementById("dashboard").innerHTML=html;
 }
 
 // =====================
-// SPEAK
+// LOG
 // =====================
-function speak(text){
-  speechSynthesis.cancel();
-  const utter=new SpeechSynthesisUtterance(text);
-  const voices=speechSynthesis.getVoices();
-  utter.voice=voices.find(v=>v.name.includes("Female"))||voices[0];
-  speechSynthesis.speak(utter);
+function log(r,t){
+  let l=document.getElementById("log");
+  l.innerHTML+=`<p><b>${r}:</b> ${t}</p>`;
+  l.scrollTop=l.scrollHeight;
 }
 
 // =====================
-// LOG
+// VOICE
 // =====================
-function logMessage(role,text){
-  const log=document.getElementById("log");
-  const p=document.createElement("p");
-  p.innerHTML="<b>"+role+":</b> "+text;
-  log.appendChild(p);
-  log.scrollTop=log.scrollHeight;
+function speak(t){
+  speechSynthesis.cancel();
+  let u=new SpeechSynthesisUtterance(t);
+  speechSynthesis.speak(u);
+}
+
+// =====================
+// SAVE
+// =====================
+async function saveSession(q,a){
+  await fetch(BASE+"/save",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({user,question:q,answer:a})
+  });
 }
 
 // =====================
 // EXPORT
 // =====================
-function exportSession(){
-  let csv="User,Role,Message\n";
-
-  conversationHistory.forEach(m=>{
-    csv+=`${currentCHW},${m.role},${m.content.replace(/,/g," ")}\n`;
-  });
-
-  for(const u in userScores){
-    const s=userScores[u];
-    csv+=`${u},SCORES,Comm:${s.communication}|Emp:${s.empathy}|Assess:${s.assessment}|Support:${s.support}\n`;
+function exportAnalytics(){
+  let csv="user,comm,emp,assess,support\n";
+  for(let u in scores){
+    let s=scores[u];
+    csv+=`${u},${s.c},${s.e},${s.a},${s.s}\n`;
   }
-
-  const blob=new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");
+  let blob=new Blob([csv]);
+  let a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="chw_session.csv";
+  a.download="analytics.csv";
   a.click();
+}
+
+// =====================
+// LMS (SCORM / LTI)
+// =====================
+function reportToLMS(){
+  if(window.parent){
+    window.parent.postMessage({type:"SCORM_SCORE", data:scores[user]}, "*");
+  }
+}
+
+// =====================
+// METAHUMAN PIPELINE
+// =====================
+function connectMeta(){
+  ws = new WebSocket("ws://localhost:8080");
+}
+
+function sendToMetaHuman(text){
+  if(ws && ws.readyState===1){
+    ws.send(JSON.stringify({text, emotion}));
+  }
 }
 
 </script>
